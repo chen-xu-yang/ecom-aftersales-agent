@@ -1,0 +1,68 @@
+spring:
+  application:
+    name: ecom-aftersales-agent
+  profiles:
+    active: local
+# 默认使用内存向量存储，以下数据库配置按需开启（同时删除主类中的 DataSourceAutoConfiguration 排除项）
+#  datasource:
+#    url: jdbc:postgresql://localhost:5432/postgres
+#    username: postgres
+#    password: postgres
+  ai:
+    dashscope:
+      # 需要替换为你自己的 key
+      api-key: your-api-key
+      chat:
+        options:
+          model: qwen-plus
+# 临时注释掉，便于开发调试和部署（实际需要启动 MCP 服务）
+#    mcp:
+#      client:
+#        sse:
+#          connections:
+#            server1:
+#              url: http://localhost:8127
+#        stdio:
+#          servers-configuration: classpath:mcp-servers.json
+# 默认使用内存向量存储，需要持久化向量数据时开启以下配置并启用 PgVectorVectorStoreConfig
+#    vectorstore:
+#      pgvector:
+#        index-type: HNSW
+#        dimensions: 1536
+#        distance-type: COSINE_DISTANCE
+#        max-document-batch-size: 10000 # 单批最大文档数
+server:
+  port: 8123
+  servlet:
+    context-path: /api
+# springdoc-openapi config
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+  group-configs:
+    - group: 'default'
+      paths-to-match: '/**'
+      packages-to-scan: com.aftersales.agent.controller
+# knife4j config
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+# searchAPI
+search-api:
+  # 需要替换为你自己的 key
+  api-key: 你的 API Key
+# 修改日志级别，查看 Spring AI 更多调用细节
+logging:
+  level:
+    org.springframework.ai: DEBUG
+  # 控制台编码默认跟随 JVM 的 stdout.encoding（Windows 终端通常是 GBK），避免日志与终端解码不一致。
+  # 如果 IDE/终端使用 UTF-8，可设置 LOG_CHARSET=UTF-8（或 -Dstdout.encoding=UTF-8）。
+  # 文件日志固定 UTF-8，便于归档和排查。
+  charset:
+    console: ${LOG_CHARSET:${stdout.encoding:UTF-8}}
+    file: UTF-8

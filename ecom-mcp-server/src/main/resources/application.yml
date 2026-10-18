@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: ecom-mcp-server
+  profiles:
+    active: sse
+server:
+  port: 8127
+
+# 图片检索使用 SearchAPI 的 Google Images 引擎，与主项目联网搜索共用同一个 Key。
+# 通过环境变量注入，避免把密钥写进仓库：SEARCH_API_KEY=xxx
+search-api:
+  api-key: ${SEARCH_API_KEY:}

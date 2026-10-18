@@ -1,0 +1,17 @@
+.git
+.gitignore
+.idea
+.dsh
+.taste-skill
+.vscode
+tmp
+target
+**/target
+node_modules
+**/node_modules
+dist
+**/dist
+application-local.yml
+**/application-local.yml
+*.log
+docs/testing/原始结果

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <title>电商售后 · 首页（极简方案示意）</title>
+    <link rel="stylesheet" href="mock.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap header-inner">
+        <a class="brand" href="home.html"><span class="brand-mark" aria-hidden="true"></span>电商售后</a>
+        <nav class="nav" aria-label="主导航">
+          <a class="active" href="home.html">首页</a>
+          <a href="workspace.html">工作台</a>
+          <a href="#rules">规则</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero wrap">
+        <div>
+          <h1>售后问题，<br />按规则处理</h1>
+          <p class="lede">
+            客服引用售后规则原文作答；智能体拆解任务、调用工具，并留下可复核的处理记录。
+          </p>
+          <div class="actions">
+            <a class="btn" href="workspace.html?mode=chat">进入工作台</a>
+            <a class="text-link" href="#rules">先看规则</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="entries wrap" aria-labelledby="entries-title">
+        <div class="section-head">
+          <h2 id="entries-title">从哪里开始</h2>
+          <p>两个入口，共用一套规则。</p>
+        </div>
+        <div class="entry-grid">
+          <a class="entry" href="workspace.html?mode=chat">
+            <span class="entry-title">售后客服</span>
+            <span class="entry-desc">解释退换货、物流、价保与发票政策，给出下一步。</span>
+            <span class="entry-arrow" aria-hidden="true">→</span>
+          </a>
+          <a class="entry" href="workspace.html?mode=agent">
+            <span class="entry-title">处理智能体</span>
+            <span class="entry-desc">拆解任务、检索规则、调用工具，生成处理说明。</span>
+            <span class="entry-arrow" aria-hidden="true">→</span>
+          </a>
+        </div>
+      </section>
+
+      <section id="rules" class="rules wrap" aria-labelledby="rules-title">
+        <div class="section-head">
+          <h2 id="rules-title">规则索引</h2>
+          <p>先读一条规则，再带着问题去问。</p>
+        </div>
+        <div class="rule-list">
+          <div class="rule-row">
+            <span class="rule-topic">退换货</span>
+            <span class="rule-copy">七天无理由、吊牌、运费承担</span>
+            <span class="rule-arrow" aria-hidden="true">→</span>
+          </div>
+          <div class="rule-row">
+            <span class="rule-topic">物流</span>
+            <span class="rule-copy">迟发、停滞、破损、少件与错发</span>
+            <span class="rule-arrow" aria-hidden="true">→</span>
+          </div>
+          <div class="rule-row">
+            <span class="rule-topic">价保</span>
+            <span class="rule-copy">15 个自然日内，同店降价的差价</span>
+            <span class="rule-arrow" aria-hidden="true">→</span>
+          </div>
+          <div class="rule-row">
+            <span class="rule-topic">发票</span>
+            <span class="rule-copy">换开、电子发票与金额口径</span>
+            <span class="rule-arrow" aria-hidden="true">→</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="process wrap" aria-labelledby="process-title">
+        <h2 id="process-title">怎么处理</h2>
+        <div class="process-grid">
+          <div>
+            <h3>查规则</h3>
+            <p>先从三份售后规则里检索相关片段，带主题标签返回。</p>
+          </div>
+          <div>
+            <h3>拆任务</h3>
+            <p>判断是否需要继续查订单、读文件或生成文档。</p>
+          </div>
+          <div>
+            <h3>留记录</h3>
+            <p>最终答复与处理文档保留，中间步骤只写日志。</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap footer-inner">
+        <span>© 2026 电商售后智能客服平台</span>
+        <span>三份规则 · 两个入口 · 课程演示</span>
+      </div>
+    </footer>
+  </body>
+</html>
+

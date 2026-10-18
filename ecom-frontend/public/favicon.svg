@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="电商售后智能客服平台">
+  <rect width="64" height="64" fill="#1e1d19" />
+  <rect x="12" y="12" width="10" height="10" fill="#2f7a52" />
+  <text
+    x="32"
+    y="50"
+    font-family="Noto Sans SC, PingFang SC, Microsoft YaHei, sans-serif"
+    font-size="34"
+    font-weight="700"
+    fill="#f5f3ed"
+    text-anchor="middle"
+  >售</text>
+</svg>

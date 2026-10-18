@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <title>电商售后 · 工作台（极简方案示意）</title>
+    <link rel="stylesheet" href="mock.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap header-inner">
+        <a class="brand" href="home.html"><span class="brand-mark" aria-hidden="true"></span>电商售后</a>
+        <nav class="nav" aria-label="主导航">
+          <a href="home.html">首页</a>
+          <a class="active" href="workspace.html">工作台</a>
+          <a href="home.html#rules">规则</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="workspace wrap">
+      <div class="workspace-head">
+        <div>
+          <h1>工作台</h1>
+          <p>同一套售后规则，两种处理方式。</p>
+        </div>
+        <div class="mode-switch" role="tablist" aria-label="处理方式">
+          <button class="active" type="button" data-mode="chat" role="tab" aria-selected="true">
+            售后客服
+          </button>
+          <button type="button" data-mode="agent" role="tab" aria-selected="false">
+            处理智能体
+          </button>
+        </div>
+      </div>
+
+      <div class="workspace-grid">
+        <section class="chat-panel" aria-label="对话">
+          <div class="chat-head">
+            <span>对话记录</span>
+            <span class="status"><i aria-hidden="true"></i>在线</span>
+          </div>
+
+          <div class="chat-body" data-panel="chat">
+            <div class="msg">
+              <span class="ai-mark" aria-hidden="true">客</span>
+              <div>
+                <div class="msg-meta">售后客服 · 14:32</div>
+                <p>
+                  您好，我是售后客服助手，可以帮您处理退换货、物流、商品质量与价保等问题。请描述遇到的问题并提供订单号。
+                </p>
+              </div>
+            </div>
+
+            <div class="msg user">
+              <div class="user-bubble">吊牌剪了还能退吗？</div>
+            </div>
+
+            <div class="msg">
+              <span class="ai-mark" aria-hidden="true">客</span>
+              <div>
+                <div class="msg-meta">售后客服 · 14:32</div>
+                <p>
+                  吊牌属于“商品完好”的判定范围，剪掉后通常无法走七天无理由退货。若商品本身存在质量问题，可按质量问题流程申请，平台承担运费。
+                </p>
+                <p class="cite">引用《售后规则 - 退换货》</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-body" data-panel="agent" hidden>
+            <div class="msg">
+              <span class="ai-mark" aria-hidden="true">智</span>
+              <div>
+                <div class="msg-meta">售后处理智能体 · 14:32</div>
+                <p>
+                  你好，我是售后处理智能体。我可以在售后规则范围内处理退换货、物流异常等问题，并生成处理说明文档。
+                </p>
+              </div>
+            </div>
+
+            <div class="msg user">
+              <div class="user-bubble">商品吊牌剪掉了，还能申请退换货吗？</div>
+            </div>
+
+            <div class="msg">
+              <span class="ai-mark" aria-hidden="true">智</span>
+              <div>
+                <div class="msg-meta">售后处理智能体 · 14:32</div>
+                <p>
+                  吊牌剪掉后是否可退换货需分情况处理：若商品存在质量问题，吊牌缺失不影响申请，平台承担往返运费；若仅因个人原因申请七天无理由退货，吊牌已剪属于商品不完好，不支持无理由退货。
+                </p>
+                <p class="cite">已检索《售后规则 - 退换货》· 处理说明待生成</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-input">
+            <input type="text" placeholder="描述你遇到的售后问题…" aria-label="输入消息" />
+            <button type="button">发送</button>
+          </div>
+        </section>
+
+        <aside class="rail">
+          <div data-panel="chat">
+            <h2>本次会话</h2>
+            <dl>
+              <div>
+                <dt>回答依据</dt>
+                <dd>三份售后规则文档</dd>
+              </div>
+              <div>
+                <dt>覆盖问题</dt>
+                <dd>退换货、物流、价保、发票</dd>
+              </div>
+              <div>
+                <dt>返回方式</dt>
+                <dd>流式答复</dd>
+              </div>
+            </dl>
+            <p>没有命中规则时，会提示转人工，不编造政策。</p>
+            <a class="text-link" href="home.html">回到首页</a>
+          </div>
+
+          <div data-panel="agent" hidden>
+            <h2>处理边界</h2>
+            <dl>
+              <div>
+                <dt>规则来源</dt>
+                <dd>售后规则知识库，按需检索</dd>
+              </div>
+              <div>
+                <dt>可用动作</dt>
+                <dd>检索规则、读写文本、生成 PDF、主动中止</dd>
+              </div>
+              <div>
+                <dt>结束方式</dt>
+                <dd>最终答复 / 主动中止 / 8 步上限</dd>
+              </div>
+            </dl>
+            <p>中间步骤只写日志，界面保留处理状态与最终答复。</p>
+            <a class="text-link" href="home.html">回到首页</a>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap footer-inner">
+        <span>© 2026 电商售后智能客服平台</span>
+        <span>三份规则 · 两个入口 · 课程演示</span>
+      </div>
+    </footer>
+
+    <script src="mock.js"></script>
+  </body>
+</html>
