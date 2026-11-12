@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * BaseAgent 状态机与执行循环测试。
  * <p>
- * 覆盖需求：AI_CONTEXT §5.3 终止语义、§8 已修复问题 #2/#4。
+ * 覆盖需求：PROJECT_CONTEXT §5.3 终止语义、§8 已修复问题 #2/#4。
  * 全部为纯单元测试：用匿名子类控制 step() 行为，不调用大模型。
  */
 @DisplayName("BaseAgent 状态机与执行循环")

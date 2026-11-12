@@ -26,7 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * BaseAgent.runStream 的 SSE 协议测试（AI_CONTEXT §6 接口约定）。
+ * BaseAgent.runStream 的 SSE 协议测试（PROJECT_CONTEXT §6 接口约定）。
  * <p>
  * 用 MockMvc 直接驱动一个只做转发的测试控制器，验证真实的事件顺序与负载：
  * progress("正在处理…") → 最终答复 → [DONE]。

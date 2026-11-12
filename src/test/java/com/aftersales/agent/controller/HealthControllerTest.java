@@ -10,7 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * 健康检查接口测试（AI_CONTEXT §6）。
+ * 健康检查接口测试（PROJECT_CONTEXT §6）。
  */
 @DisplayName("健康检查接口")
 class HealthControllerTest {

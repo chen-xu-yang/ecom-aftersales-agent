@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 /**
- * 工具注册测试：校验暴露给模型的工具集合（AI_CONTEXT §5.4）。
+ * 工具注册测试：校验暴露给模型的工具集合（PROJECT_CONTEXT §5.4）。
  * <p>
  * 该用例同时是安全回归：已移除的终端执行、任意 URL 抓取等能力不得被重新注册。
  */

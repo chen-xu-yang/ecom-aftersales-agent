@@ -9,7 +9,7 @@
 
 对话内容会做轻量 Markdown 渲染（加粗、行内代码、小标题与列表）：先转义 `&`、`<`、`>`，再生成受控标签，避免模型输出注入 HTML。
 
-智能体处理期间，前端监听后端推送的 `progress` 命名事件，在输入框上方显示“正在处理…”状态；该状态不写入对话气泡，答复到达后自动消失。
+智能体回复为逐字流式：前端监听 `token` 命名事件把增量文本追加到当前气泡，`progress` 事件用于显示“正在处理…”状态，`[DONE]` 到达后关闭连接。
 
 ## 技术栈
 
@@ -53,7 +53,7 @@ npm run build
 | 接口 | 说明 |
 |---|---|
 | `GET /api/ai/aftersales/chat/sse` | 售后客服流式对话（参数 `message`、`chatId`） |
-| `GET /api/ai/agent/chat` | 售后处理智能体流式对话（参数 `message`） |
+| `GET /api/ai/agent/chat` | 售后处理智能体流式对话（参数 `message`、可选 `chatId`，同一 chatId 多轮） |
 
 ## 部署
 
@@ -63,6 +63,3 @@ npm run build
 
 反向代理的后端地址在 `nginx.conf` 的 `proxy_pass` 中配置，按实际部署方式修改（同机部署填写宿主机地址，容器编排填写后端服务名）。
 
-## 备注
-
-Taste Skill 仍安装在工作区 `.dsh/skills/`，但当前极简版不再以它的大字、图片数量等展示级规则为目标；`docs/mockups/minimal-v1/` 保留了这版设计的静态示意稿。

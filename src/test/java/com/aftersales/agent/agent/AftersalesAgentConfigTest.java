@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 /**
- * 售后处理智能体的配置契约（AI_CONTEXT §5.2、§5.3）。
+ * 售后处理智能体的配置契约（PROJECT_CONTEXT §5.2、§5.3）。
  */
 @DisplayName("售后处理智能体配置")
 class AftersalesAgentConfigTest {
@@ -29,7 +29,7 @@ class AftersalesAgentConfigTest {
     void hasExpectedBasics() {
         AftersalesAgent agent = newAgent();
         assertEquals("aftersalesAgent", agent.getName());
-        assertEquals(8, agent.getMaxSteps(), "AI_CONTEXT 约定 maxSteps=8");
+        assertEquals(8, agent.getMaxSteps(), "PROJECT_CONTEXT 约定 maxSteps=8");
         assertEquals(AgentState.IDLE, agent.getState());
         assertEquals(0, agent.getCurrentStep());
         assertNotNull(agent.getChatClient(), "必须初始化 ChatClient");

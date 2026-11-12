@@ -40,10 +40,10 @@ import static org.mockito.Mockito.when;
  * ToolCallAgent 的 think / act 测试。
  * <p>
  * 用 Mockito 模拟 ChatModel 的流式接口（think 已改为 stream + 本地聚合），不产生真实模型调用；覆盖：
- * - 有/无工具调用时的状态与消息上下文（AI_CONTEXT §8 #1）
+ * - 有/无工具调用时的状态与消息上下文（PROJECT_CONTEXT §8 #1）
  * - 流式分片文本与工具调用的聚合
  * - 模型异常时置 ERROR（不得空转）
- * - 终止工具优先返回助手文本（AI_CONTEXT §8 #3）
+ * - 终止工具优先返回助手文本（PROJECT_CONTEXT §8 #3）
  * - 传给模型的 Prompt 是否自带工具与“禁用内置工具执行”选项
  */
 @DisplayName("ToolCallAgent 思考与行动")

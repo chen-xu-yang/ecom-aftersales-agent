@@ -1,8 +1,6 @@
 ﻿### CUSTOM ###
 application-local.yml
 tmp
-.taste-skill/
-.dsh/
 
 HELP.md
 target/

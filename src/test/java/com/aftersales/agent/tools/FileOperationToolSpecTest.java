@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * FileOperationTool 规格测试。
  * <p>
- * 覆盖：正常读写、UTF-8 中文、错误提示，以及 AI_CONTEXT §5.4 要求的“路径校验”边界。
+ * 覆盖：正常读写、UTF-8 中文、错误提示，以及 PROJECT_CONTEXT §5.4 要求的“路径校验”边界。
  */
 @DisplayName("文件读写工具")
 class FileOperationToolSpecTest {
@@ -86,7 +86,7 @@ class FileOperationToolSpecTest {
     @Test
     @DisplayName("安全：读取必须限制在 tmp/file 内，禁止 ../ 路径穿越")
     void readFileRejectsPathTraversal() {
-        // ../../pom.xml 会解析到项目根目录的 pom.xml；AI_CONTEXT §5.4 明确要求限制可访问资源
+        // ../../pom.xml 会解析到项目根目录的 pom.xml；PROJECT_CONTEXT §5.4 明确要求限制可访问资源
         String result = tool.readFile("../../pom.xml");
         assertTrue(result.startsWith("Error reading file:"),
                 "路径穿越未被拦截，实际返回：" + abbreviate(result));

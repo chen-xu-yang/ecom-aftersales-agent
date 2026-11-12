@@ -8,7 +8,7 @@ import org.springframework.ai.chat.messages.AssistantMessage;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * ReActAgent 单步语义测试：think 为 false 时视为最终答复并终止（AI_CONTEXT §5.3、§8 #1）。
+ * ReActAgent 单步语义测试：think 为 false 时视为最终答复并终止（PROJECT_CONTEXT §5.3、§8 #1）。
  */
 @DisplayName("ReActAgent 单步执行语义")
 class ReActAgentStepTest {

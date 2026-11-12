@@ -18,7 +18,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * AftersalesPolicyTool 测试：检索参数、结果格式化与空结果兜底（AI_CONTEXT §5.2）。
+ * AftersalesPolicyTool 测试：检索参数、结果格式化与空结果兜底（PROJECT_CONTEXT §5.2）。
  */
 @DisplayName("售后规则检索工具")
 class AftersalesPolicyToolTest {

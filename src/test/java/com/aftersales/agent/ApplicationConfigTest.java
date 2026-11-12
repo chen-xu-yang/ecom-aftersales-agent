@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 配置契约测试（AI_CONTEXT §3、§6）：
+ * 配置契约测试（PROJECT_CONTEXT §3、§6）：
  * 端口、接口前缀、模型名与“受版本控制的配置不得包含真实密钥”。
  * <p>
  * 直接读取源码目录下的 application.yml，不启动 Spring 容器，避免触发知识库初始化。

@@ -1,280 +1,180 @@
 # 电商售后智能客服平台（ecom-aftersales-agent）
 
-面向电商售后场景的 AI 应用，由两部分组成：
+> 基于开源 ReAct Agent 骨架**二次开发**的电商售后 AI 应用：客服多轮对话 + 售后处理智能体（工具调用 / RAG / SSE 流式）+ 独立 MCP 服务端。
+> 本仓库在教程骨架基础上完成了业务改造、真流式、多轮会话、检索评测与工程加固，改造记录见 [`docs/changes/2026-11-12-改造记录.md`](docs/changes/2026-11-12-改造记录.md)。
 
-- **售后客服**：面向用户的多轮对话入口，基于售后知识库回答问题，并支持工具调用与 MCP 服务调用。
-- **售后处理智能体**：基于 ReAct 模式自主规划，按售后规则拆解任务、分步调用工具，产出处理记录与说明文档。
+## 本次改造做了什么（2026-11-12）
 
-项目解决的核心问题是：售后咨询中大量重复问题（退换货政策、物流停滞、价保、发票）可以被知识库和规则覆盖，而跨步骤的任务（核查问题 → 判定责任 → 生成处理单）可以交给智能体按流程执行。
+| 改造项 | 说明 | 证据 |
+|---|---|---|
+| 测试可复现 | 固定 surefire、旧真实 API 测试改为环境变量开关，`mvn -o test` 离线全绿 | 123 run / 9 skipped |
+| 检索评测闭环 | 40 条售后问答评测集 + 真实检索评测（hit@k、MRR、阈值扫描） | `docs/eval/`、recall@4 = 100% |
+| 真流式 | `stream().chatResponse()` + 本地聚合，token 级 SSE + `[DONE]` 统一收尾 | 实测 46 个 token 事件 |
+| 多轮会话 | 按 `chatId` 复用智能体实例（LRU + 空闲过期），保留上下文 | 两轮对话实测引用订单号 |
+| 安全加固 | 工具路径 `realpath` 校验 + 读写 1 MB 限制、CORS 来源收敛、日志截断、密钥环境变量 | 单测覆盖越界/绝对路径/超大内容 |
+| 工程化 | 专用流式线程池、超时取消、MCP profile、生产配置模板、评测/演示文档 | 见下文 |
 
 ## 功能
 
-**售后客服**
+**售后客服（AftersalesApp）**
+- 多轮对话（`MessageWindowChatMemory`，保留最近 20 条），按 `chatId` 隔离会话
+- 知识库问答、查询改写、结构化输出（售后处理报告）、工具调用、MCP 工具调用
 
-- 多轮对话，支持对话记忆（消息窗口，保留最近 20 条）
-- 基于向量数据库的知识库问答，回答附带政策依据
-- 查询改写，把口语化提问改写成便于检索的查询
-- 结构化输出：把一次咨询的处理结果解析为 Java 对象（处理建议列表）
-- 调用工具：文件读写、联网搜索、PDF 生成
-- 调用 MCP 服务：接入外部能力，无需改动主工程
+**售后处理智能体（AftersalesAgent）**
+- 四层继承：`BaseAgent → ReActAgent → ToolCallAgent → AftersalesAgent`
+- 关闭 Spring AI 内置工具执行，自行维护 think/act 与消息上下文
+- 6 个工具：规则检索、联网搜索、文件读写、PDF 生成、任务终止
+- 三层终止：模型不再调用工具 / `doTerminate` / `maxSteps=8`
+- SSE 流式：`progress`（步骤状态）+ `token`（增量文本）+ `[DONE]`（结束哨兵）
 
-**售后处理智能体**
-
-- 四层继承结构（`BaseAgent` → `ReActAgent` → `ToolCallAgent` → `AftersalesAgent`），实现"思考—行动"循环
-- 关闭框架内置的工具执行循环，自行维护消息上下文，便于插入业务逻辑与终止判断
-- 通过结构化函数调用解析工具请求，配合最大步骤限制与 `terminate` 工具控制终止
-- 按需检索售后知识库：把 RAG 检索封装成工具，涉及政策细节时先检索规则原文再作答
-- 通过服务器发送事件（Server-Sent Events, SSE）推送最终答复，中间步骤状态只写日志
-
-**独立 MCP 服务端**
-
-- 单独模块 `ecom-mcp-server`，以 MCP 服务端形式对外提供图片检索能力（用于售后凭证、商品参考图）
-- 同时支持标准输入输出（stdio）与 SSE 两种传输方式，可被本工程或其他 MCP 客户端挂载
-
-## 技术栈
-
-| 分类 | 选型 |
-|---|---|
-| 语言与框架 | Java 21、Spring Boot 3.4.4 |
-| AI 开发框架 | Spring AI 1.0.0、Spring AI Alibaba 1.0.0.2 |
-| 大模型 | 通义千问 `qwen-plus`（DashScope），向量模型用于文档向量化 |
-| 检索增强生成（Retrieval-Augmented Generation, RAG） | `MarkdownDocumentReader`、`KeywordMetadataEnricher`、`TokenTextSplitter`、`QuestionAnswerAdvisor`、`RetrievalAugmentationAdvisor` |
-| 向量数据库 | 内存向量存储（默认）、PGVector（可选，HNSW 索引 + 余弦距离） |
-| 工具调用 | Spring AI `@Tool` 注解 + `ToolCallingManager` |
-| 协议 | 模型上下文协议（Model Context Protocol, MCP），客户端与服务端双向 |
-| 流式输出 | SSE（`Flux`、`ServerSentEvent`、`SseEmitter` 三种写法） |
-| 工具库 | Hutool、Kryo、iText、Knife4j |
-| 前端 | Vue 3、Vite、Vue Router、EventSource |
-| 部署 | Docker、Nginx |
+**独立 MCP 服务端（ecom-mcp-server）**
+- 图片检索工具，支持 SSE（8127）与 stdio 两种传输
 
 ## 架构
 
 ```
-                        ┌──────────────────────────────┐
-   浏览器 ── SSE ──────▶ │  AiController                │
-                        │  /ai/aftersales/chat/*        │
-                        │  /ai/agent/chat               │
-                        └───────┬──────────────┬───────┘
-                                │              │
-                 ┌──────────────▼───┐   ┌──────▼──────────────┐
-                 │  AftersalesApp   │   │  AftersalesAgent    │
-                 │  售后客服应用     │   │  售后处理智能体      │
-                 └────────┬─────────┘   └──────┬──────────────┘
-                          │                    │
-      ┌───────────────────┼──────────┐         │ ToolCallAgent
-      │                   │          │         │  ├─ BaseAgent   状态与步骤循环
- ┌────▼─────┐   ┌─────────▼───┐  ┌───▼──────┐  │  ├─ ReActAgent  think / act
- │ Advisor  │   │  RAG 链路    │  │ 工具回调  │  │  └─ ToolCallingManager 执行工具
- │ 日志      │   │  文档 → 切片  │  │          │  │
- │ 对话记忆  │   │  → 向量化    │  │          │  └──▶ ToolCallback[]
- │ 知识库问答│   │  → 检索      │  │          │        ├─ FileOperationTool
- └──────────┘   │  → 上下文增强 │  │          │        ├─ WebSearchTool
-                └──────┬───────┘  └───┬──────┘        ├─ PDFGenerationTool
-                       │              │                ├─ TerminateTool
-                       │              │                └─ AftersalesPolicyTool
-                ┌──────▼──────────────▼──────┐
-                │  VectorStore               │
-                │  SimpleVectorStore（默认）   │
-                │  PgVectorStore（可选）       │
-                └────────────────────────────┘
-                          ▲
-                          │ 知识库文档
-              src/main/resources/document/*.md
-
-   外部能力：MCP 服务端 ecom-mcp-server（stdio / SSE）
-             DashScope API、SearchAPI
-```
-
-## 目录结构
-
-```
-ecom-aftersales-agent/
-├── src/main/java/com/aftersales/agent/
-│   ├── AftersalesAgentApplication.java     # 启动类
-│   ├── advisor/                            # 自定义 Advisor（日志、复读增强）
-│   ├── agent/                              # 智能体分层实现
-│   │   ├── BaseAgent.java                  # 状态与执行循环
-│   │   ├── ReActAgent.java                 # 思考—行动抽象
-│   │   ├── ToolCallAgent.java              # 工具调用实现
-│   │   ├── AftersalesAgent.java            # 售后处理智能体
-│   │   └── model/AgentState.java
-│   ├── app/AftersalesApp.java              # 售后客服应用
-│   ├── chatmemory/FileBasedChatMemory.java # 基于文件的对话记忆（可选）
-│   ├── config/CorsConfig.java              # 全局跨域配置
-│   ├── constant/                           # 常量
-│   ├── controller/                         # 聊天与健康检查接口
-│   ├── rag/                                # RAG 链路：文档加载、向量存储、检索增强
-│   └── tools/                              # 工具定义与集中注册
-├── src/main/resources/
-│   ├── application.yml                     # 主配置（含占位密钥）
-│   ├── document/                           # 售后知识库 Markdown 文档
-│   └── mcp-servers.json                    # MCP stdio 客户端配置
-├── ecom-frontend/                          # Vue 3 前端（含 Dockerfile 与 nginx.conf）
-├── ecom-mcp-server/                        # 独立 MCP 服务端模块
-└── Dockerfile                              # 后端镜像构建
+浏览器 ──SSE──▶ AiController
+                 ├─ /ai/aftersales/chat/{sync|sse|server_sent_event|sse_emitter}
+                 │     └─ AftersalesApp：ChatClient + 记忆/日志 Advisor + RAG + 工具 + MCP
+                 └─ /ai/agent/chat?chatId=xxx
+                       └─ AftersalesAgent（ReAct）──▶ ToolCallingManager
+                             ├─ searchPolicy（RAG 检索工具，topK=4 / 0.4）
+                             ├─ searchWeb / readFile / writeFile / generatePDF / doTerminate
+                             └─ SSE：progress / token / [DONE]
+知识库：src/main/resources/document/*.md ──▶ Markdown 读取 ──▶ 关键词增强 ──▶ SimpleVectorStore(PGVector 可选)
+评测：eval/aftersales_eval.jsonl ──▶ RetrievalEvalTest ──▶ docs/eval/retrieval-report.md
 ```
 
 ## 快速开始
 
-### 1. 环境要求
-
-- JDK 21
-- Maven 3.9+
-- Node.js 16+（仅前端需要）
-
-### 2. 申请密钥
-
-| 密钥 | 用途 | 是否必需 |
-|---|---|---|
-| DashScope API Key（阿里云百炼） | 对话模型与向量模型 | 必需 |
-| SearchAPI Key | `WebSearchTool` 联网搜索、`ecom-mcp-server` 图片检索（Google Images） | 使用对应功能时必需 |
-
-### 3. 配置密钥
-
-`application.yml` 中只保留占位值，真实密钥写在 `application-local.yml`（已被 `.gitignore` 忽略，不会提交）。仓库提供了模板：
+### 1. 后端
 
 ```bash
+# 1) 准备密钥（不要提交到仓库）
 cp src/main/resources/application-local.yml.example src/main/resources/application-local.yml
-```
+# 编辑 application-local.yml 填入 DASHSCOPE_API_KEY 与可选 SEARCH_API_KEY
 
-然后填入：
-
-```yaml
-# src/main/resources/application-local.yml
-spring:
-  ai:
-    dashscope:
-      api-key: sk-你的密钥
-
-search-api:
-  api-key: 你的 SearchAPI 密钥
-```
-
-### 4. 启动后端
-
-```bash
+# 2) 启动（默认 profile=local，内存向量库）
 mvn spring-boot:run
+# 或
+mvn package -DskipTests && java -jar target/ecom-aftersales-agent-0.0.1-SNAPSHOT.jar
 ```
 
-> 项目没有提交 `maven-wrapper.jar`，请使用本机 Maven（`mvn`），不要依赖 `./mvnw`。
-
-启动后：
-
-- 健康检查：`http://localhost:8123/api/health` 返回 `ok`
-- 接口文档（Knife4j）：`http://localhost:8123/api/doc.html`
-
-> 日志编码：控制台默认跟随 JVM 的 `stdout.encoding`（中文 Windows 通常是 GBK，与终端一致），
-> 文件日志固定 UTF-8。如果 IDE 或终端使用 UTF-8，请设置环境变量 `LOG_CHARSET=UTF-8`
-> （或在 VM options 中加 `-Dstdout.encoding=UTF-8`）；Windows 终端也可先执行 `chcp 65001`。
-
-首次启动会加载 `resources/document` 下的知识库文档并写入向量存储，需要调用一次向量模型，因此启动耗时与文档量相关。
-
-### 5. 启动前端（可选）
+### 2. 前端
 
 ```bash
 cd ecom-frontend
 npm install
-npm run dev
+npm run dev        # http://localhost:3000
 ```
 
-访问 `http://localhost:3000`。
-
-### 6. 启动 MCP 服务端（可选）
-
-图片检索使用 SearchAPI 的 Google Images 引擎，与联网搜索共用同一把 SearchAPI Key，通过 `SEARCH_API_KEY` 环境变量注入：
+### 3. 独立 MCP 服务端（可选）
 
 ```bash
-# macOS / Linux
-export SEARCH_API_KEY=你的SearchAPI密钥
 cd ecom-mcp-server
-mvn spring-boot:run          # 以 SSE 方式运行，端口 8127
+mvn package -DskipTests
+# SSE 模式（端口 8127）
+java -jar target/ecom-mcp-server-0.0.1-SNAPSHOT.jar --spring.profiles.active=sse
+# 主工程按需启用 MCP 客户端：
+# java -jar target/ecom-aftersales-agent-0.0.1-SNAPSHOT.jar --spring.profiles.active=local,mcp
 ```
 
-```powershell
-# Windows PowerShell
-$env:SEARCH_API_KEY = "你的SearchAPI密钥"
-cd ecom-mcp-server
-mvn spring-boot:run
-```
+## 配置
 
-启用 MCP 客户端需要把 `application.yml` 中注释掉的 `spring.ai.mcp.client` 配置恢复，并按 `mcp-servers.json` 的描述配置 stdio 方式的服务端。
+密钥全部走环境变量或本地文件（`application-local.yml` 已被 `.gitignore` 忽略）：
+
+| 变量 | 说明 |
+|---|---|
+| `DASHSCOPE_API_KEY` | 通义千问对话与向量化（必需） |
+| `SEARCH_API_KEY` | 联网搜索与 MCP 图片检索（可选） |
+| `app.cors.allowed-origin-patterns` | 允许的跨域来源，默认本地 3000 端口 |
+| `spring.ai.dashscope.chat.options.model` | 默认 `qwen-plus` |
 
 ## 接口
 
-服务端口 `8123`，统一前缀 `/api`。
+| 接口 | 说明 |
+|---|---|
+| `GET /api/ai/aftersales/chat/sync` | 同步客服对话 |
+| `GET /api/ai/aftersales/chat/sse` | 客服 SSE（Flux） |
+| `GET /api/ai/aftersales/chat/server_sent_event` | 客服 SSE（`ServerSentEvent`） |
+| `GET /api/ai/aftersales/chat/sse_emitter` | 客服 SSE（`SseEmitter`） |
+| `GET /api/ai/agent/chat?message=&chatId=` | 售后处理智能体（SSE；同 chatId 多轮） |
+| `GET /api/ai/aftersales/chat/mcp` | 客服对话 + MCP 工具（需 mcp profile） |
+| `GET /api/health` | 健康检查 |
 
-| 方法 | 路径 | 说明 |
-|---|---|---|
-| GET | `/api/health` | 健康检查 |
-| GET | `/api/ai/aftersales/chat/sync` | 售后客服同步对话 |
-| GET | `/api/ai/aftersales/chat/sse` | 售后客服流式对话（返回 `Flux<String>`） |
-| GET | `/api/ai/aftersales/chat/server_sent_event` | 售后客服流式对话（返回 `Flux<ServerSentEvent>`） |
-| GET | `/api/ai/aftersales/chat/sse_emitter` | 售后客服流式对话（返回 `SseEmitter`） |
-| GET | `/api/ai/agent/chat` | 售后处理智能体流式对话，推送最终答复；处理期间发送 `progress` 事件 |
+### SSE 协议
 
-三种流式写法分别对应不同的返回类型，`SseEmitter` 方式配合 `CompletableFuture` 在独立线程中执行，避免阻塞请求线程。
+```
+event:progress
+data:正在处理…
 
-知识库问答、工具调用、MCP 调用三类能力由 `AftersalesApp` 提供（`doChatWithRag`、`doChatWithTools`、`doChatWithMcp`），当前通过 `src/test` 下的测试类调用验证。
+event:token
+data:根据
 
-## 关键设计说明
+event:token
+data:平台
 
-**RAG 链路**
+data:[DONE]
+```
 
-知识库文档存放在 `resources/document` 下，文件名约定为「主题 - 分类.md」，分类（如 `退换货`、`物流`）会写入文档元数据，检索时可以按分类做元数据过滤。文档按 `---` 水平线切分为独立片段，经关键词增强后写入向量存储。检索阶段使用 `VectorStoreDocumentRetriever` 组合相似度阈值与 topK，并配置上下文查询增强器，在检索结果为空时返回兜底话术，而不是让模型自由生成。
+- `token`：模型增量文本，前端逐字追加；
+- `progress`：工具调用/步骤切换，作为前端气泡边界；
+- `[DONE]`：**任何分支**（正常结束、步数上限、异常、超时）都会下发一次，前端据此关闭连接；
+- 非流式子类仍兼容整段 `data:` 下发。
 
-**智能体分层**
+## RAG 检索评测
 
-`BaseAgent` 负责状态机与步骤循环，`ReActAgent` 抽象出 `think` 与 `act`，`ToolCallAgent` 基于 `ToolCallingManager` 实现工具执行。这里关闭了 Spring AI 内置的工具执行循环（`withInternalToolExecutionEnabled(false)`），由智能体自行维护消息上下文，目的是把"是否继续""是否终止"的控制权留给业务代码。
+40 条评测集（35 条可回答 + 5 条应转人工），覆盖 3 份规则文档、14 个规则小节：
 
-终止条件分三层：模型不再发起工具调用，即视为已给出最终答复并结束本轮；`terminate` 工具用于无法继续时主动中止；最大步数作为兜底，避免异常情况下无限循环。执行状态同样区分 `FINISHED` 与 `ERROR`，两类状态都会退出循环，不会被当作"继续执行"。
+| 指标 | 结果 |
+|---|---:|
+| hit@1 / hit@3 / hit@4 | 88.6% / 97.1% / **100%** |
+| MRR@8 | **0.9310** |
+| 转人工空检索率 | 80% |
 
-**工具与安全边界**
+```bash
+mvn -o test -Dtest=EvalDatasetTest                                  # 离线自检（无需 Key）
+RUN_RETRIEVAL_EVAL=true mvn -o test -Dtest=RetrievalEvalTest       # 真实评测
+```
 
-当前保留的工具为文件读写、联网搜索、PDF 生成、任务终止与售后规则检索。原型的终端执行、任意 URL 抓取、任意资源下载三个工具已被移除：`@Tool` 暴露的每一个能力都是提示词注入的可达面，终端执行等价于把命令执行权限交给模型。后续新增工具（查订单、查物流、建工单、转人工）时，同样需要限制参数取值范围与可访问资源。
+说明与局限见 [`docs/eval/README.md`](docs/eval/README.md)：阈值 0.45 起开始丢召回，0.5 掉到 91.4%，
+当前 `topK=4 / threshold=0.4` 已是最优区间；1 条转人工问题（快递员投诉）仍会被召回。
 
-售后规则检索被做成工具而不是常驻 Advisor：由模型自主决定何时检索，政策类问题在系统提示中被强制要求先检索，普通寒暄则不必触发向量检索。这样既减少了无效的检索调用，也让"这一轮回答依据了哪些规则"直接体现在步骤日志里，便于排查模型编造。
+## 测试
 
-**步骤展示与数据分离**
+```bash
+mvn -o test                       # 123 run / 0 fail / 9 skipped（全 mock，不联网）
+cd ecom-frontend && node tests/run.mjs   # 29 passed
+```
 
-智能体的中间步骤状态只写日志，SSE 只推送最终答复；工具返回的原始数据同样只写日志。处理期间通过命名事件 `progress` 推送"正在处理…"，前端只更新状态提示，不写入对话内容。Spring AI 默认会对工具返回值做 JSON 序列化，如果把 `responseData()` 直接推给前端，界面会出现 `\n`、`\"` 这类转义符；检索类工具还会把整段规则原文刷在对话里。工具结果是给模型的数据，最终答复才是给人的内容。
-
-**流式与线程**
-
-`SseEmitter` 方式的智能体调用在 `CompletableFuture` 中异步执行，并设置了超时回调与完成回调，用于在连接中断时清理状态。生产环境建议替换为独立的线程池，避免占用公共线程池。
+需要真实模型的集成测试默认跳过，显式开启：`RUN_REAL_AI_TESTS=true mvn -Dtest=AftersalesAgentTest test`。
 
 ## 部署
 
-**后端**：`Dockerfile` 使用 `maven:3.9-amazoncorretto-21` 镜像，复制源码后在镜像内执行 `mvn clean package -DskipTests`，以 `prod` profile 启动。
-
 ```bash
-docker build -t ecom-aftersales-agent:latest .
-docker run -d -p 8123:8123 --name aftersales-agent ecom-aftersales-agent:latest
+# 后端镜像（构建时跳过测试，运行时通过环境变量注入密钥）
+docker build -t ecom-aftersales-agent .
+docker run -p 8123:8123 -e DASHSCOPE_API_KEY=xxx ecom-aftersales-agent
+
+# 前端镜像
+cd ecom-frontend && docker build -t ecom-aftersales-web .
 ```
 
-**前端**：`ecom-frontend/Dockerfile` 分两阶段构建，Node 阶段执行 `npm run build`，Nginx 阶段托管 `dist`。`nginx.conf` 已针对 SSE 关闭反向代理缓冲并延长读取超时，否则流式输出会被缓冲成一次性返回。
+Nginx 已配置 SSE：`proxy_buffering off`、`proxy_read_timeout 600s`（见 `ecom-frontend/nginx.conf`）。
 
-```bash
-cd ecom-frontend
-docker build -t ecom-aftersales-web:latest .
-docker run -d -p 80:80 --name aftersales-web ecom-aftersales-web:latest
-```
+## 已知局限
 
-## 可选：切换 PgVector 向量数据库
+1. **MCP 客户端接入为实验性**：MCP 服务端可独立启动并注册工具（SSE/stdio 均验证启动），
+   但主工程 Spring AI 1.0.0 / MCP 0.10.0 的 SSE 客户端初始化 20s 超时，待升级或换传输方式解决；
+   `doChatWithMcp` 暂无路由保障，默认关闭。
+2. 无鉴权与限流，仅适合本地/内网演示；生产需加 API Key 校验与限流。
+3. 会话与向量库为单机内存实现，重启丢失；多实例部署需外部存储（PGVector/Redis）。
+4. 检索评测只覆盖召回，未覆盖“答案忠实引用原文”的自动评测。
+5. 客服侧 RAG 以「检索工具」形式在智能体链路生效，客服 `doChatByStream` 本身不挂 RAG Advisor。
 
-默认使用内存向量存储，进程重启后向量数据不保留。需要持久化或做大规模检索时切换到 PgVector，需要同时修改三处：
+## 二次开发说明与致谢
 
-1. `PgVectorVectorStoreConfig` 上的 `@Configuration` 取消注释
-2. `application.yml` 中的数据源与 `vectorstore.pgvector` 配置取消注释并填写连接信息
-3. `AftersalesAgentApplication` 中移除 `DataSourceAutoConfiguration.class` 排除项
+本项目骨架来自开源 ReAct Agent 教程（BaseAgent/ReActAgent/ToolCallAgent 分层、Advisor、ChatMemory、MCP 等设计），
+本次在其上完成业务化改造与工程加固，具体改动与原因见 [`docs/changes/2026-11-12-改造记录.md`](docs/changes/2026-11-12-改造记录.md)。
 
-## 已知限制与后续计划
-
-- 对话记忆默认存在内存中，多实例部署需要切换到数据库持久化
-- 接口未做鉴权与限流，公网部署前需要补充
-- 智能体每一步都会产生一次模型调用，缺少 token 成本统计
-- 工具集中的业务工具（查订单、查物流、建工单、转人工）待接入
-- 缺少检索效果评测集，检索参数（相似度阈值、topK）尚未做定量对比
-
-## 开发文档
-
-- [AI_CONTEXT.md](./docs/AI_CONTEXT.md)：项目上下文、关键设计、已修复问题与开发约定
+开发说明：部分样板代码与文档初稿借助 AI 编程助手完成，方案设计、代码审查与验证由作者负责。

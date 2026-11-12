@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 空检索兜底与文本切分测试（AI_CONTEXT §5.1）。
+ * 空检索兜底与文本切分测试（PROJECT_CONTEXT §5.1）。
  */
 @DisplayName("RAG 兜底与切分")
 class RagSupportTest {

@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 知识库加载测试：文档数量、topic 元数据与文件名约定（AI_CONTEXT §5.1）。
+ * 知识库加载测试：文档数量、topic 元数据与文件名约定（PROJECT_CONTEXT §5.1）。
  * <p>
  * 直接加载 classpath 下真实的售后规则文档，不调用大模型。
  */
@@ -34,7 +34,7 @@ class AftersalesDocumentLoaderSpecTest {
         List<Document> documents = newLoader().loadMarkdowns();
 
         assertFalse(documents.isEmpty(), "知识库不应为空");
-        assertEquals(17, documents.size(), "AI_CONTEXT 约定约 17 个片段，数量变化需同步更新文档与测试");
+        assertEquals(17, documents.size(), "PROJECT_CONTEXT 约定约 17 个片段，数量变化需同步更新文档与测试");
         for (Document document : documents) {
             assertNotNull(document.getText());
             assertFalse(document.getText().isBlank(), "片段内容不应为空白");
