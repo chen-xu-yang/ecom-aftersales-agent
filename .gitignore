@@ -1,4 +1,4 @@
-### CUSTOM ###
+﻿### CUSTOM ###
 application-local.yml
 tmp
 .taste-skill/
@@ -37,3 +37,11 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# 鏈湴娴嬭瘯鏃ュ織
+mvn-*.log
+
+# 本地运行/评测产物
+app*.log
+sse-demo.*
+target/eval/

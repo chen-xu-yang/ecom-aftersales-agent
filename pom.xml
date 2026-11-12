@@ -155,6 +155,15 @@
                 </configuration>
             </plugin>
             <plugin>
+                <!-- 固定 surefire 版本：本机离线仓库已有 3.5.5，保证 mvn test 可复现 -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.5</version>
+                <configuration>
+                    <argLine>-Dfile.encoding=UTF-8</argLine>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>

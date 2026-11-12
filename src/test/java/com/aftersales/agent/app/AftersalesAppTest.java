@@ -3,11 +3,17 @@ package com.aftersales.agent.app;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.UUID;
 
+/**
+ * 真实模型集成测试：多轮对话、结构化输出、RAG 均依赖 DashScope，默认跳过。
+ * 需要真实 Key 时：RUN_REAL_AI_TESTS=true mvn -Dtest=AftersalesAppTest test
+ */
 @SpringBootTest
+@EnabledIfEnvironmentVariable(named = "RUN_REAL_AI_TESTS", matches = "true")
 class AftersalesAppTest {
 
     @Resource

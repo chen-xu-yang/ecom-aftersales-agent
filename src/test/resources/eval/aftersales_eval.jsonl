@@ -1,0 +1,40 @@
+{"id":"Q01","query":"七天无理由退货是多久之内可以申请？","category":"退换货","difficulty":"easy","answerable":true,"expected_doc":"售后规则 - 退换货.md","expected_section":"七天无理由退货的适用范围","key_phrases":["自签收次日起 7 个自然日内"]}
+{"id":"Q02","query":"拆开外包装检查过商品，还能七天无理由退货吗？","category":"退换货","difficulty":"medium","answerable":true,"expected_doc":"售后规则 - 退换货.md","expected_section":"七天无理由退货的适用范围","key_phrases":["仅拆封外包装用于查验商品的，不影响无理由退货"]}
+{"id":"Q03","query":"哪些商品不支持七天无理由退货？","category":"退换货","difficulty":"easy","answerable":true,"expected_doc":"售后规则 - 退换货.md","expected_section":"七天无理由退货的适用范围","key_phrases":["消费者定作的商品"]}
+{"id":"Q04","query":"吊牌剪掉了还能按无理由退货吗？","category":"退换货","difficulty":"easy","answerable":true,"expected_doc":"售后规则 - 退换货.md","expected_section":"吊牌或标签已剪掉还能退货吗","key_phrases":["吊牌已剪掉、丢失或被破坏的，通常无法按七天无理由退货处理"]}
+{"id":"Q05","query":"吊牌剪了但商品本身有质量问题，还能退换吗？","category":"退换货","difficulty":"medium","answerable":true,"expected_doc":"售后规则 - 退换货.md","expected_section":"吊牌或标签已剪掉还能退货吗","key_phrases":["吊牌缺失不影响质量问题引发的退换货申请"]}
+{"id":"Q06","query":"换货可以换成另一个型号或者别的商品吗？","category":"退换货","difficulty":"easy","answerable":true,"expected_doc":"售后规则 - 退换货.md","expected_section":"换货流程与时效","key_phrases":["换货不支持更换不同型号或不同商品"]}
+{"id":"Q07","query":"换货提交之后，审核和仓库验收各要多久？","category":"退换货","difficulty":"medium","answerable":true,"expected_doc":"售后规则 - 退换货.md","expected_section":"换货流程与时效","key_phrases":["客服审核（1 个工作日内）"]}
+{"id":"Q08","query":"买错尺码了想退货，退回运费谁承担？","category":"退换货","difficulty":"easy","answerable":true,"expected_doc":"售后规则 - 退换货.md","expected_section":"退换货运费由谁承担","key_phrases":["因个人原因（不喜欢、买错尺码、买错颜色等）发起退货的，退回运费由用户承担"]}
+{"id":"Q09","query":"退货时赠品弄丢了，退款金额怎么算？","category":"退换货","difficulty":"medium","answerable":true,"expected_doc":"售后规则 - 退换货.md","expected_section":"商品配件或赠品缺失的处理","key_phrases":["赠品缺失的，按赠品页面对应的销售价格折抵退款金额"]}
+{"id":"Q10","query":"收到货时赠品就少了，还能申请补发吗？","category":"退换货","difficulty":"medium","answerable":true,"expected_doc":"售后规则 - 退换货.md","expected_section":"商品配件或赠品缺失的处理","key_phrases":["下单后 7 个自然日内提交凭证申请补发"]}
+{"id":"Q11","query":"现货商品一般付款后多久发货？","category":"物流","difficulty":"easy","answerable":true,"expected_doc":"售后规则 - 物流.md","expected_section":"商品迟迟不发货怎么办","key_phrases":["付款后 48 小时内发出"]}
+{"id":"Q12","query":"超时没发货能赔多少钱？","category":"物流","difficulty":"easy","answerable":true,"expected_doc":"售后规则 - 物流.md","expected_section":"商品迟迟不发货怎么办","key_phrases":["订单实付金额的 5%，单笔最低 5 元、最高 50 元"]}
+{"id":"Q13","query":"双十一大促期间订单发货超时，还能申请赔付吗？","category":"物流","difficulty":"hard","answerable":true,"expected_doc":"售后规则 - 物流.md","expected_section":"商品迟迟不发货怎么办","key_phrases":["大促期间（如双十一、年货节）发货时效以活动页面公示为准"]}
+{"id":"Q14","query":"物流信息三天没有更新了，怎么办？","category":"物流","difficulty":"easy","answerable":true,"expected_doc":"售后规则 - 物流.md","expected_section":"物流信息长时间不更新","key_phrases":["物流轨迹超过 72 小时没有更新的"]}
+{"id":"Q15","query":"物流停滞的核查一般多久有结果？","category":"物流","difficulty":"medium","answerable":true,"expected_doc":"售后规则 - 物流.md","expected_section":"物流信息长时间不更新","key_phrases":["一般 24 至 48 小时反馈结果"]}
+{"id":"Q16","query":"核查后发现包裹丢了，可以怎么处理？","category":"物流","difficulty":"medium","answerable":true,"expected_doc":"售后规则 - 物流.md","expected_section":"物流信息长时间不更新","key_phrases":["核查确认包裹丢失的"]}
+{"id":"Q17","query":"签收之后才发现外包装破损，还要在多长时间内申请？","category":"物流","difficulty":"easy","answerable":true,"expected_doc":"售后规则 - 物流.md","expected_section":"商品在运输途中破损","key_phrases":["请在签收后 48 小时内提交申请"]}
+{"id":"Q18","query":"保价的商品在运输中损坏了，按什么标准赔？","category":"物流","difficulty":"medium","answerable":true,"expected_doc":"售后规则 - 物流.md","expected_section":"商品在运输途中破损","key_phrases":["保价商品按保价金额与受损程度协商赔付"]}
+{"id":"Q19","query":"收到的包裹少了一件商品，需要提供什么凭证？","category":"物流","difficulty":"easy","answerable":true,"expected_doc":"售后规则 - 物流.md","expected_section":"收到商品少件或有错发","key_phrases":["上传包裹内全部物品的合影、快递面单照片"]}
+{"id":"Q20","query":"物流显示已签收但我实际没收到货，该怎么办？","category":"物流","difficulty":"medium","answerable":true,"expected_doc":"售后规则 - 物流.md","expected_section":"拒收与签收异常","key_phrases":["显示已签收但实际未收到的"]}
+{"id":"Q21","query":"价保申请的时间范围是多久？","category":"价保","difficulty":"easy","answerable":true,"expected_doc":"售后规则 - 商品与价保.md","expected_section":"价格保护规则","key_phrases":["下单支付后 15 个自然日内"]}
+{"id":"Q22","query":"哪些优惠降价是不参与价保的？","category":"价保","difficulty":"medium","answerable":true,"expected_doc":"售后规则 - 商品与价保.md","expected_section":"价格保护规则","key_phrases":["不含叠加优惠券、限时秒杀、会员专享价、以旧换新补贴"]}
+{"id":"Q23","query":"已经申请退货了，还能再申请价保退差价吗？","category":"价保","difficulty":"medium","answerable":true,"expected_doc":"售后规则 - 商品与价保.md","expected_section":"价格保护规则","key_phrases":["已申请退货、已办理退货的商品不支持价保"]}
+{"id":"Q24","query":"大促期间的直降价格能申请价保吗？","category":"价保","difficulty":"hard","answerable":true,"expected_doc":"售后规则 - 商品与价保.md","expected_section":"价格保护规则","key_phrases":["大促期间的直降价不参与价保"]}
+{"id":"Q25","query":"价保要怎么申请，差价退到哪里？","category":"价保","difficulty":"medium","answerable":true,"expected_doc":"售后规则 - 商品与价保.md","expected_section":"价格保护规则","key_phrases":["系统自动比对价格"]}
+{"id":"Q26","query":"确认收货之后还能修改发票信息吗？","category":"发票","difficulty":"easy","answerable":true,"expected_doc":"售后规则 - 商品与价保.md","expected_section":"发票相关问题","key_phrases":["确认收货前可以修改发票信息，确认收货后只能申请换开"]}
+{"id":"Q27","query":"电子发票什么时候能下载？","category":"发票","difficulty":"easy","answerable":true,"expected_doc":"售后规则 - 商品与价保.md","expected_section":"发票相关问题","key_phrases":["电子发票在订单完成后 24 小时内推送到订单详情页"]}
+{"id":"Q28","query":"发票金额包含运费吗？","category":"发票","difficulty":"medium","answerable":true,"expected_doc":"售后规则 - 商品与价保.md","expected_section":"发票相关问题","key_phrases":["发票金额为订单实付金额，不含运费与红包抵扣部分"]}
+{"id":"Q29","query":"发生部分退货时，原来的发票要处理吗？","category":"发票","difficulty":"medium","answerable":true,"expected_doc":"售后规则 - 商品与价保.md","expected_section":"发票相关问题","key_phrases":["需要将原发票退回后重新开具"]}
+{"id":"Q30","query":"超时未发货的赔付上限是多少？","category":"赔付","difficulty":"easy","answerable":true,"expected_doc":"售后规则 - 商品与价保.md","expected_section":"赔付标准一览","key_phrases":["实付金额 5%，最低 5 元、最高 50 元"]}
+{"id":"Q31","query":"少发漏发怎么赔付？","category":"赔付","difficulty":"medium","answerable":true,"expected_doc":"售后规则 - 商品与价保.md","expected_section":"赔付标准一览","key_phrases":["按缺失商品的实际售价赔付或补发"]}
+{"id":"Q32","query":"商品有质量问题要在多久之内提出申请？","category":"质量","difficulty":"easy","answerable":true,"expected_doc":"售后规则 - 商品与价保.md","expected_section":"商品质量问题的认定与处理","key_phrases":["签收后 15 个自然日内提交申请"]}
+{"id":"Q33","query":"质量问题寄回检测需要多长时间？","category":"质量","difficulty":"medium","answerable":true,"expected_doc":"售后规则 - 商品与价保.md","expected_section":"商品质量问题的认定与处理","key_phrases":["检测周期为 3 至 5 个工作日"]}
+{"id":"Q34","query":"检测后认定不是质量问题，来回运费谁承担？","category":"质量","difficulty":"hard","answerable":true,"expected_doc":"售后规则 - 商品与价保.md","expected_section":"商品质量问题的认定与处理","key_phrases":["检测认定非质量问题的，寄回运费由用户承担"]}
+{"id":"Q35","query":"赔付金额有没有总上限？","category":"赔付","difficulty":"medium","answerable":true,"expected_doc":"售后规则 - 商品与价保.md","expected_section":"赔付标准一览","key_phrases":["任何赔付均不超过订单实付金额"]}
+{"id":"Q36","query":"你们平台和京东比哪个更便宜？","category":"转人工","difficulty":"easy","answerable":false,"expected_doc":null,"expected_section":null,"key_phrases":[]}
+{"id":"Q37","query":"帮我写一首关于快递的诗","category":"转人工","difficulty":"easy","answerable":false,"expected_doc":null,"expected_section":null,"key_phrases":[]}
+{"id":"Q38","query":"快递员态度很差，我要投诉他，怎么处理？","category":"转人工","difficulty":"medium","answerable":false,"expected_doc":null,"expected_section":null,"key_phrases":[]}
+{"id":"Q39","query":"可以用花呗分期付款吗？","category":"转人工","difficulty":"easy","answerable":false,"expected_doc":null,"expected_section":null,"key_phrases":[]}
+{"id":"Q40","query":"会员积分怎么兑换优惠券？","category":"转人工","difficulty":"medium","answerable":false,"expected_doc":null,"expected_section":null,"key_phrases":[]}

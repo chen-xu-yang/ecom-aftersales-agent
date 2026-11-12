@@ -3,9 +3,15 @@ package com.aftersales.agent.agent;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.boot.test.context.SpringBootTest;
 
+/**
+ * 真实模型集成测试：完整跑一轮智能体（含工具调用），默认跳过。
+ * 需要真实 Key 时：RUN_REAL_AI_TESTS=true mvn -Dtest=AftersalesAgentTest test
+ */
 @SpringBootTest
+@EnabledIfEnvironmentVariable(named = "RUN_REAL_AI_TESTS", matches = "true")
 class AftersalesAgentTest {
 
     @Resource
