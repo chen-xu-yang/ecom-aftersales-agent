@@ -41,9 +41,9 @@ export const chatWithAftersalesApp = (message, chatId) => {
   return connectSSE('/ai/aftersales/chat/sse', { message, chatId })
 }
 
-// 售后处理智能体聊天
-export const chatWithAgent = (message) => {
-  return connectSSE('/ai/agent/chat', { message })
+// 售后处理智能体聊天（chatId 用于多轮会话隔离）
+export const chatWithAgent = (message, chatId) => {
+  return connectSSE('/ai/agent/chat', { message, chatId })
 }
 
 export default {

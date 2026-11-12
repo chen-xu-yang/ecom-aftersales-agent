@@ -11,43 +11,62 @@ import org.springframework.ai.chat.client.advisor.api.StreamAdvisorChain;
 import reactor.core.publisher.Flux;
 
 /**
- * 自定义日志 Advisor
- * 打印 info 级别日志、只输出单次用户提示词和 AI 回复的文本
+ * 自定义日志 Advisor：打印用户提示词与 AI 回复，但做长度截断，避免把完整 prompt / PII
+ * 大段写进日志（生产环境建议整体关闭 INFO 或改成 DEBUG）。
  */
 @Slf4j
 public class MyLoggerAdvisor implements CallAdvisor, StreamAdvisor {
 
-	@Override
-	public String getName() {
-		return this.getClass().getSimpleName();
-	}
+    private static final int MAX_LOG_CHARS = 500;
 
-	@Override
-	public int getOrder() {
-		return 0;
-	}
+    @Override
+    public String getName() {
+        return this.getClass().getSimpleName();
+    }
 
-	private ChatClientRequest before(ChatClientRequest request) {
-		log.info("AI Request: {}", request.prompt());
-		return request;
-	}
+    @Override
+    public int getOrder() {
+        return 0;
+    }
 
-	private void observeAfter(ChatClientResponse chatClientResponse) {
-		log.info("AI Response: {}", chatClientResponse.chatResponse().getResult().getOutput().getText());
-	}
+    private ChatClientRequest before(ChatClientRequest request) {
+        log.info("AI Request: {}", abbreviate(String.valueOf(request.prompt())));
+        return request;
+    }
 
-	@Override
-	public ChatClientResponse adviseCall(ChatClientRequest chatClientRequest, CallAdvisorChain chain) {
-		chatClientRequest = before(chatClientRequest);
-		ChatClientResponse chatClientResponse = chain.nextCall(chatClientRequest);
-		observeAfter(chatClientResponse);
-		return chatClientResponse;
-	}
+    private void observeAfter(ChatClientResponse chatClientResponse) {
+        String text = chatClientResponse.chatResponse() != null
+                && chatClientResponse.chatResponse().getResult() != null
+                ? chatClientResponse.chatResponse().getResult().getOutput().getText()
+                : null;
+        log.info("AI Response: {}", abbreviate(text));
+    }
 
-	@Override
-	public Flux<ChatClientResponse> adviseStream(ChatClientRequest chatClientRequest, StreamAdvisorChain chain) {
-		chatClientRequest = before(chatClientRequest);
-		Flux<ChatClientResponse> chatClientResponseFlux = chain.nextStream(chatClientRequest);
-		return (new ChatClientMessageAggregator()).aggregateChatClientResponse(chatClientResponseFlux, this::observeAfter);
-	}
+    /**
+     * 日志截断：最多保留 {@value #MAX_LOG_CHARS} 字符，避免日志膨胀与敏感信息整段落盘。
+     */
+    private String abbreviate(String text) {
+        if (text == null) {
+            return "";
+        }
+        if (text.length() <= MAX_LOG_CHARS) {
+            return text;
+        }
+        return text.substring(0, MAX_LOG_CHARS) + "...(truncated, total " + text.length() + " chars)";
+    }
+
+    @Override
+    public ChatClientResponse adviseCall(ChatClientRequest chatClientRequest, CallAdvisorChain chain) {
+        chatClientRequest = before(chatClientRequest);
+        ChatClientResponse chatClientResponse = chain.nextCall(chatClientRequest);
+        observeAfter(chatClientResponse);
+        return chatClientResponse;
+    }
+
+    @Override
+    public Flux<ChatClientResponse> adviseStream(ChatClientRequest chatClientRequest, StreamAdvisorChain chain) {
+        chatClientRequest = before(chatClientRequest);
+        Flux<ChatClientResponse> chatClientResponseFlux = chain.nextStream(chatClientRequest);
+        return (new ChatClientMessageAggregator()).aggregateChatClientResponse(chatClientResponseFlux, this::observeAfter);
+    }
 }

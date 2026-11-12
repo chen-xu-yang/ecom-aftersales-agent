@@ -48,4 +48,22 @@ class FileOperationToolTest {
         Assertions.assertFalse(new File(FileConstant.FILE_SAVE_DIR + "/escape.txt").exists(),
                 "must not write outside tmp/file");
     }
+
+    @Test
+    void absolutePath_isRejected() {
+        String result = fileOperationTool.writeFile("C:\\Windows\\evil.txt", "x");
+
+        Assertions.assertTrue(result.startsWith("Error writing to file"), result);
+        Assertions.assertFalse(new File("C:\\Windows\\evil.txt").exists(),
+                "must not write to an absolute path");
+    }
+
+    @Test
+    void oversizedContent_isRejected() {
+        String content = "x".repeat(1024 * 1024 + 1);
+
+        String result = fileOperationTool.writeFile(fileName, content);
+
+        Assertions.assertTrue(result.startsWith("Error writing to file: content too large"), result);
+    }
 }

@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class RetrievalEvalTest {
 
     private static final int[] K_VALUES = {1, 3, 4, 5, 8};
-    private static final double[] THRESHOLDS = {0.3, 0.4, 0.5, 0.6};
+    private static final double[] THRESHOLDS = {0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60};
     private static final int PROD_TOP_K = 4;
     private static final double PROD_THRESHOLD = 0.4;
 
@@ -100,9 +100,15 @@ class RetrievalEvalTest {
             stat[1] += 1;
         }
 
+        // ---------- 3.1 转人工样本明细（threshold=0.4 下仍被召回的情况） ----------
+        Map<String, Integer> fallbackDetail = new LinkedHashMap<>();
+        for (EvalSupport.Entry entry : fallback) {
+            fallbackDetail.put(entry.query(), search(entry.query(), PROD_TOP_K, PROD_THRESHOLD).size());
+        }
+
         // ---------- 4. 生成报告 ----------
         String report = buildReport(answerable.size(), fallback.size(), hitsAtK, mrrSum,
-                thresholdRows, categoryHit, firstHitRank, queryById);
+                thresholdRows, categoryHit, firstHitRank, queryById, fallbackDetail);
         Path out = Path.of("target", "eval", "retrieval-report.md");
         Files.createDirectories(out.getParent());
         Files.writeString(out, report, StandardCharsets.UTF_8);
@@ -149,7 +155,8 @@ class RetrievalEvalTest {
 
     private String buildReport(int answerable, int fallback, int[] hitsAtK, double mrrSum,
                                List<double[]> thresholdRows, Map<String, int[]> categoryHit,
-                               Map<String, Integer> firstHitRank, Map<String, String> queryById) {
+                               Map<String, Integer> firstHitRank, Map<String, String> queryById,
+                               Map<String, Integer> fallbackDetail) {
         StringBuilder sb = new StringBuilder();
         sb.append("# RAG 检索评测报告\n\n");
         sb.append("> 生成时间：").append(LocalDateTime.now()
@@ -185,6 +192,29 @@ class RetrievalEvalTest {
                     .append(pct(e.getValue()[0], e.getValue()[1])).append(" |\n");
         }
         sb.append("\n");
+
+        sb.append("## 3.1 转人工样本明细（threshold=").append(PROD_THRESHOLD)
+                .append(" 下仍被召回的情况，返回 0 条为正确兜底）\n\n");
+        sb.append("| query | 返回条数 |\n|---|---:|\n");
+        for (Map.Entry<String, Integer> e : fallbackDetail.entrySet()) {
+            sb.append("| ").append(e.getKey()).append(" | ").append(e.getValue()).append(" |\n");
+        }
+        sb.append("\n");
+
+        // 推荐配置：优先命中率，其次转人工空检索率
+        double[] best = thresholdRows.get(0);
+        for (double[] row : thresholdRows) {
+            if (row[1] > best[1] || (row[1] == best[1] && row[2] > best[2])) {
+                best = row;
+            }
+        }
+        sb.append("## 3.2 调参结论\n\n");
+        sb.append("- 当前线上配置：topK=").append(PROD_TOP_K)
+                .append("，threshold=").append(PROD_THRESHOLD).append("\n");
+        sb.append("- 评测推荐：topK=").append(PROD_TOP_K)
+                .append("，threshold=").append(best[0])
+                .append("（hit@4=").append(pct((int) best[1], answerable))
+                .append("，转人工空检索率=").append(pct((int) best[2], fallback)).append("）\n\n");
 
         sb.append("## 4. 明细\n\n");
         sb.append("| id | query | 首命中排名 |\n|---|---|---:|\n");

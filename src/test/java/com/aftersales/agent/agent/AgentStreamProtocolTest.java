@@ -166,7 +166,7 @@ class AgentStreamProtocolTest {
 
         String body = runAndReadBody();
 
-        assertTrue(body.contains("错误：无法从状态运行代理：RUNNING"), "实际：" + body);
+        assertTrue(body.contains("错误：该会话正在处理上一轮问题，请稍后再试"), "实际：" + body);
         assertEquals(0, controller.agent.getCurrentStep(), "校验失败时不应执行步骤");
     }
 

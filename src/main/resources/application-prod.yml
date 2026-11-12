@@ -1,2 +1,20 @@
-# 可以编写生产环境的配置，会覆盖 application.yml 配置
-# 注意提交时不要包含敏感信息（或者不要提交该文件）
+# 生产环境配置：密钥一律通过环境变量注入，不写入仓库
+# 启动示例：DASHSCOPE_API_KEY=xxx SEARCH_API_KEY=yyy java -jar app.jar --spring.profiles.active=prod
+spring:
+  ai:
+    dashscope:
+      api-key: ${DASHSCOPE_API_KEY}
+      chat:
+        options:
+          model: ${DASHSCOPE_CHAT_MODEL:qwen-plus}
+server:
+  port: 8123
+  servlet:
+    context-path: /api
+search-api:
+  api-key: ${SEARCH_API_KEY:}
+# 生产默认降低第三方框架日志级别，避免把完整 prompt 写进日志
+logging:
+  level:
+    org.springframework.ai: INFO
+    org.springframework.web: INFO

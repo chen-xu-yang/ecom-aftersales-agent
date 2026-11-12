@@ -48,6 +48,8 @@ class AiControllerTest {
         ReflectionTestUtils.setField(controller, "aftersalesApp", aftersalesApp);
         ReflectionTestUtils.setField(controller, "allTools", new ToolCallback[0]);
         ReflectionTestUtils.setField(controller, "dashscopeChatModel", chatModel);
+        ReflectionTestUtils.setField(controller, "agentChatSessionManager",
+                new com.aftersales.agent.agent.AgentChatSessionManager());
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setMessageConverters(new StringHttpMessageConverter(StandardCharsets.UTF_8))
                 .addFilters(new CharacterEncodingFilter("UTF-8", true))

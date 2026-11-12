@@ -1,6 +1,7 @@
 package com.aftersales.agent.controller;
 
 import com.aftersales.agent.agent.AftersalesAgent;
+import com.aftersales.agent.agent.AgentChatSessionManager;
 import com.aftersales.agent.app.AftersalesApp;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.model.ChatModel;
@@ -9,6 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.publisher.Flux;
@@ -27,6 +29,9 @@ public class AiController {
 
     @Resource
     private ChatModel dashscopeChatModel;
+
+    @Resource
+    private AgentChatSessionManager agentChatSessionManager;
 
     /**
      * 同步调用电商售后客服应用
@@ -96,13 +101,35 @@ public class AiController {
 
     /**
      * 流式调用售后处理智能体
+     * <p>
+     * 传 chatId 时复用同一会话的智能体实例，保留多轮上下文；不传则每次请求独立实例。
      *
-     * @param message
-     * @return
+     * @param message 用户消息
+     * @param chatId  会话标识（可选）
+     * @return SSE emitter
      */
     @GetMapping("/agent/chat")
-    public SseEmitter doChatWithAgent(String message) {
-        AftersalesAgent aftersalesAgent = new AftersalesAgent(allTools, dashscopeChatModel);
+    public SseEmitter doChatWithAgent(String message,
+                                      @RequestParam(required = false) String chatId) {
+        AftersalesAgent aftersalesAgent;
+        if (cn.hutool.core.util.StrUtil.isBlank(chatId)) {
+            aftersalesAgent = new AftersalesAgent(allTools, dashscopeChatModel);
+        } else {
+            aftersalesAgent = agentChatSessionManager.getOrCreate(
+                    chatId, () -> new AftersalesAgent(allTools, dashscopeChatModel));
+        }
         return aftersalesAgent.runStream(message);
+    }
+
+    /**
+     * 客服对话（调用 MCP 图片检索工具，需开启 mcp profile 并启动 MCP 服务端）
+     *
+     * @param message 用户消息
+     * @param chatId  会话标识
+     * @return 回复文本
+     */
+    @GetMapping("/aftersales/chat/mcp")
+    public String doChatWithMcp(String message, String chatId) {
+        return aftersalesApp.doChatWithMcp(message, chatId);
     }
 }

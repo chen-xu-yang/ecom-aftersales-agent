@@ -83,6 +83,11 @@ public abstract class BaseAgent {
     private List<Message> messageList = new ArrayList<>();
 
     /**
+     * 多轮会话开关：为 true 时同一实例再次执行会保留历史消息（由会话管理器为同 chatId 开启）。
+     */
+    private boolean keepHistory;
+
+    /**
      * 运行代理
      * <p>
      * 执行结束后状态保留为 FINISHED / ERROR 便于调用方检查；同一实例可以再次调用，
@@ -145,7 +150,13 @@ public abstract class BaseAgent {
         }
         this.state = AgentState.RUNNING;
         this.currentStep = 0;
-        this.messageList.clear();
+        if (!this.keepHistory) {
+            // 单次任务：每轮清空上下文
+            this.messageList.clear();
+        } else {
+            // 多轮会话：保留上一轮上下文，仅追加本轮用户消息
+            this.messageList = new ArrayList<>(this.messageList);
+        }
         this.messageList.add(new UserMessage(userPrompt));
     }
 
@@ -194,7 +205,8 @@ public abstract class BaseAgent {
             try {
                 startNewRun(userPrompt);
             } catch (IllegalStateException e) {
-                sseEmitter.send("错误：无法从状态运行代理：" + this.state);
+                // 同一会话并发提问：给出可读提示，而不是“无法从状态运行”
+                sseEmitter.send("错误：该会话正在处理上一轮问题，请稍后再试");
                 return;
             }
 

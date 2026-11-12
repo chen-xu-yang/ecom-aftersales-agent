@@ -30,11 +30,11 @@ export default async function run(context) {
     assert(!source.url.includes(' '), 'URL 中不应包含未编码空格：' + source.url)
   })
 
-  context.test('API：智能体接口只带 message 参数', () => {
+  context.test('API：智能体接口带 message 与 chatId 参数', () => {
     FakeEventSource.instances.length = 0
-    const source = api.chatWithAgent('生成售后处理单')
+    const source = api.chatWithAgent('生成售后处理单', 'agent-1')
     assert(source.url.includes('/ai/agent/chat?message='), source.url)
-    assert(!source.url.includes('chatId='), source.url)
+    assert(source.url.includes('chatId=agent-1'), source.url)
   })
 
   context.test('API：[DONE] 哨兵原样交给调用方', () => {

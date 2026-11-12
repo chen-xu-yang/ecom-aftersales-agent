@@ -111,6 +111,7 @@ const route = useRoute()
 const router = useRouter()
 
 const chatId = `aftersales_${Math.random().toString(36).slice(2, 10)}`
+const agentChatId = `agent_${Math.random().toString(36).slice(2, 10)}`
 const isUnmounted = ref(false)
 
 const sessions = reactive({
@@ -231,7 +232,7 @@ const sendAgentMessage = (message) => {
     answerIndex = session.messages.length - 1
   }
 
-  const source = chatWithAgent(message)
+  const source = chatWithAgent(message, agentChatId)
   sources.agent = source
 
   // token：模型增量文本，实时追加渲染

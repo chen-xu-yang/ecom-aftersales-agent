@@ -1,0 +1,21 @@
+﻿# MCP 客户端配置：按需启用（--spring.profiles.active=local,mcp）
+# 方式一（默认，推荐演示）：先以 SSE 模式启动独立 MCP 服务端：
+#   java -jar ecom-mcp-server/target/ecom-mcp-server-0.0.1-SNAPSHOT.jar --spring.profiles.active=sse
+# 方式二：stdio 模式见 classpath:mcp-servers.json（需构建 mcp-server jar）
+spring:
+  ai:
+    mcp:
+      client:
+        enabled: true
+        name: ecom-aftersales-agent
+        version: 0.0.1
+        type: SYNC
+        sse:
+          connections:
+            ecom-mcp-server:
+              url: http://localhost:8127
+logging:
+  level:
+    io.modelcontextprotocol: INFO
+
+
