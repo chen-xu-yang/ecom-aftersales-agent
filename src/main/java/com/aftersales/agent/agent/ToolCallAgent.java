@@ -12,17 +12,24 @@ import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.model.tool.ToolExecutionResult;
 import org.springframework.ai.tool.ToolCallback;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * 处理工具调用的基础代理类，具体实现了 think 和 act 方法，可以用作创建实例的父类
+ * 处理工具调用的基础代理类，具体实现了 think 和 act 方法，可以用作创建实例的父类。
+ * <p>
+ * think() 采用流式调用：模型增量文本通过 token 事件实时下发，同时在本地聚合
+ * 文本与工具调用增量，聚合完成后交给 act() 执行工具。
  */
 @EqualsAndHashCode(callSuper = true)
 @Data
@@ -32,7 +39,7 @@ public class ToolCallAgent extends ReActAgent {
     // 可用的工具
     private final ToolCallback[] availableTools;
 
-    // 保存工具调用信息的响应结果（要调用那些工具）
+    // 保存工具调用信息的响应结果（要调用哪些工具）
     private ChatResponse toolCallChatResponse;
 
     // 最近一次思考的文本输出，调用终止工具时作为最终答复返回
@@ -66,28 +73,29 @@ public class ToolCallAgent extends ReActAgent {
             UserMessage userMessage = new UserMessage(getNextStepPrompt());
             getMessageList().add(userMessage);
         }
-        // 2、调用 AI 大模型，获取工具调用结果
+        // 2、流式调用模型：增量文本实时推送，同时聚合工具调用
         List<Message> messageList = getMessageList();
         Prompt prompt = new Prompt(messageList, this.chatOptions);
         try {
-            ChatResponse chatResponse = getChatClient().prompt(prompt)
+            StreamCollector collector = new StreamCollector();
+            getChatClient().prompt(prompt)
                     .system(getSystemPrompt())
                     // 这里传入的是已构建好的 ToolCallback，必须用 toolCallbacks 而不是 tools
                     .toolCallbacks(availableTools)
-                    .call()
-                    .chatResponse();
-            // 记录响应，用于等下 Act
+                    .stream()
+                    .chatResponse()
+                    .doOnNext(collector::accept)
+                    .blockLast();
+
+            ChatResponse chatResponse = collector.toChatResponse();
             this.toolCallChatResponse = chatResponse;
-            // 3、解析工具调用结果，获取要调用的工具
-            // 助手消息
+
+            // 3、解析聚合结果，获取要调用的工具
             AssistantMessage assistantMessage = chatResponse.getResult().getOutput();
             // 记录本轮文本，若同轮调用了终止工具，用它作为最终答复
             this.lastAssistantText = assistantMessage.getText();
-            // 获取要调用的工具列表
             List<AssistantMessage.ToolCall> toolCallList = assistantMessage.getToolCalls();
-            // 输出提示信息
-            String result = assistantMessage.getText();
-            log.info(getName() + "的思考：" + result);
+            log.info(getName() + "的思考：" + assistantMessage.getText());
             log.info(getName() + "选择了 " + toolCallList.size() + " 个工具来使用");
             String toolCallInfo = toolCallList.stream()
                     .map(toolCall -> String.format("工具名称：%s，参数：%s", toolCall.name(), toolCall.arguments()))
@@ -98,10 +106,9 @@ public class ToolCallAgent extends ReActAgent {
                 // 只有不调用工具时，才需要手动记录助手消息
                 getMessageList().add(assistantMessage);
                 return false;
-            } else {
-                // 需要调用工具时，无需记录助手消息，因为调用工具时会自动记录
-                return true;
             }
+            // 需要调用工具时无需记录助手消息，因为调用工具时会自动记录
+            return true;
         } catch (Exception e) {
             log.error(getName() + "的思考过程遇到了问题：" + e.getMessage());
             getMessageList().add(new AssistantMessage("处理时遇到了错误：" + e.getMessage()));
@@ -149,5 +156,77 @@ public class ToolCallAgent extends ReActAgent {
         return toolResponseMessage.getResponses().stream()
                 .map(response -> "已调用工具 " + response.name())
                 .collect(Collectors.joining("；"));
+    }
+
+    /**
+     * 流式响应聚合器：文本增量实时推送，工具调用增量按 id 合并（兼容累计式与增量式两种分片）。
+     */
+    private final class StreamCollector {
+
+        private final StringBuilder text = new StringBuilder();
+        private final Map<String, ToolCallBuilder> toolCalls = new LinkedHashMap<>();
+
+        void accept(ChatResponse response) {
+            if (response == null || response.getResult() == null) {
+                return;
+            }
+            AssistantMessage output = response.getResult().getOutput();
+            if (output == null) {
+                return;
+            }
+            String delta = output.getText();
+            if (StrUtil.isNotEmpty(delta)) {
+                text.append(delta);
+                // 实时推送 token（客户端断开时抛出，由上层统一收尾）
+                emitToken(delta);
+            }
+            if (output.getToolCalls() != null) {
+                output.getToolCalls().forEach(this::mergeToolCall);
+            }
+        }
+
+        private void mergeToolCall(AssistantMessage.ToolCall call) {
+            String key = StrUtil.isNotBlank(call.id())
+                    ? call.id()
+                    : (StrUtil.isNotBlank(call.name()) ? "name:" + call.name() : "anonymous-" + toolCalls.size());
+            ToolCallBuilder builder = toolCalls.computeIfAbsent(key, ignored -> new ToolCallBuilder());
+            if (StrUtil.isNotBlank(call.id())) {
+                builder.id = call.id();
+            }
+            if (StrUtil.isNotBlank(call.name())) {
+                builder.name = call.name();
+            }
+            String arguments = call.arguments();
+            if (StrUtil.isNotEmpty(arguments)) {
+                String existing = builder.arguments.toString();
+                if (!existing.isEmpty() && arguments.startsWith(existing)) {
+                    // 累计式分片：整体替换
+                    builder.arguments.setLength(0);
+                }
+                builder.arguments.append(arguments);
+            }
+        }
+
+        ChatResponse toChatResponse() {
+            List<AssistantMessage.ToolCall> mergedCalls = toolCalls.values().stream()
+                    .filter(builder -> StrUtil.isNotBlank(builder.name))
+                    .map(builder -> new AssistantMessage.ToolCall(
+                            StrUtil.isNotBlank(builder.id) ? builder.id : "call-" + UUID.randomUUID(),
+                            "function",
+                            builder.name,
+                            builder.arguments.toString()))
+                    .toList();
+            AssistantMessage merged = new AssistantMessage(text.toString(), Map.of(), mergedCalls);
+            return new ChatResponse(List.of(new Generation(merged)));
+        }
+    }
+
+    /**
+     * 工具调用增量构建器。
+     */
+    private static final class ToolCallBuilder {
+        private String id = "";
+        private String name = "";
+        private final StringBuilder arguments = new StringBuilder();
     }
 }

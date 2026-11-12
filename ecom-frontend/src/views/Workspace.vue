@@ -87,7 +87,7 @@
                 <dd>最终答复 / 主动中止 / 8 步上限</dd>
               </div>
             </dl>
-            <p>中间步骤只写日志，界面保留处理状态与最终答复。</p>
+            <p>回复逐字实时输出；调用工具时显示处理进度，收到 [DONE] 后结束。</p>
             <router-link class="text-link" to="/">回到首页</router-link>
           </template>
         </aside>
@@ -206,7 +206,7 @@ const sendChatMessage = (message) => {
   }
 
   source.onerror = () => {
-    // 客服接口在流结束时尚未发送 [DONE]；已收到内容时按正常收尾处理。
+    // 网络异常兜底：若已收到内容，按正常收尾展示，避免把已完成答复标记为失败。
     session.connectionStatus = receivedData ? 'disconnected' : 'error'
     source.close()
   }
@@ -222,77 +222,58 @@ const sendAgentMessage = (message) => {
   session.connectionStatus = 'connecting'
   session.processing = true
 
-  let messageBuffer = []
-  let lastBubbleTime = Date.now()
-  let isFirstResponse = true
-  const chineseEndPunctuation = ['。', '！', '？', '…']
-  const minBubbleInterval = 800
+  // 当前正在追加 token 的气泡下标；-1 表示尚未开始下一条
+  let answerIndex = -1
 
-  const createBubble = (content, type = 'ai-answer') => {
-    if (!content.trim() || isUnmounted.value) return
-
-    const now = Date.now()
-    const timeSinceLastBubble = now - lastBubbleTime
-
-    if (isFirstResponse) {
-      addMessage('agent', content, false, type)
-      isFirstResponse = false
-    } else if (timeSinceLastBubble < minBubbleInterval) {
-      window.setTimeout(() => {
-        if (!isUnmounted.value) addMessage('agent', content, false, type)
-      }, minBubbleInterval - timeSinceLastBubble)
-    } else {
-      addMessage('agent', content, false, type)
-    }
-
-    lastBubbleTime = now
-    messageBuffer = []
+  const ensureAnswerBubble = () => {
+    if (answerIndex >= 0) return
+    addMessage('agent', '', false, 'ai-answer')
+    answerIndex = session.messages.length - 1
   }
 
   const source = chatWithAgent(message)
   sources.agent = source
 
+  // token：模型增量文本，实时追加渲染
+  source.addEventListener('token', (event) => {
+    session.processing = true
+    ensureAnswerBubble()
+    if (answerIndex >= 0 && event.data) {
+      session.messages[answerIndex].content += event.data
+    }
+  })
+
+  // progress：工具调用/步骤切换，结束当前气泡并等待后续 token
   source.addEventListener('progress', () => {
     session.processing = true
+    if (answerIndex >= 0) {
+      session.messages[answerIndex].type = 'ai-progress'
+      answerIndex = -1
+    }
   })
 
   source.onmessage = (event) => {
     const data = event.data
-
-    if (data && data !== '[DONE]') {
-      session.processing = false
-      messageBuffer.push(data)
-
-      const combinedText = messageBuffer.join('')
-      const lastChar = data.charAt(data.length - 1)
-      const hasCompleteSentence =
-        chineseEndPunctuation.includes(lastChar) || data.includes('\n\n')
-      const isLongEnough = combinedText.length > 40
-
-      if (hasCompleteSentence || isLongEnough) {
-        createBubble(combinedText)
-      }
-    }
+    if (!data) return
 
     if (data === '[DONE]') {
-      if (messageBuffer.length > 0) {
-        createBubble(messageBuffer.join(''), 'ai-final')
+      if (answerIndex >= 0) {
+        session.messages[answerIndex].type = 'ai-final'
       }
-
       session.processing = false
       session.connectionStatus = 'disconnected'
       source.close()
+      return
     }
+
+    // 非 token 的整段消息（终止提示、错误提示等）
+    addMessage('agent', data, false, 'ai-final')
   }
 
   source.onerror = () => {
     session.processing = false
     session.connectionStatus = 'error'
     source.close()
-
-    if (messageBuffer.length > 0) {
-      createBubble(messageBuffer.join(''), 'ai-error')
-    }
   }
 }
 

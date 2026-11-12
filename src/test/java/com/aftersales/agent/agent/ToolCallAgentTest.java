@@ -21,6 +21,7 @@ import org.springframework.ai.support.ToolCallbacks;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.ai.tool.ToolCallback;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 import java.util.Map;
@@ -38,8 +39,9 @@ import static org.mockito.Mockito.when;
 /**
  * ToolCallAgent 的 think / act 测试。
  * <p>
- * 用 Mockito 模拟 ChatModel，不产生真实模型调用；覆盖：
+ * 用 Mockito 模拟 ChatModel 的流式接口（think 已改为 stream + 本地聚合），不产生真实模型调用；覆盖：
  * - 有/无工具调用时的状态与消息上下文（AI_CONTEXT §8 #1）
+ * - 流式分片文本与工具调用的聚合
  * - 模型异常时置 ERROR（不得空转）
  * - 终止工具优先返回助手文本（AI_CONTEXT §8 #3）
  * - 传给模型的 Prompt 是否自带工具与“禁用内置工具执行”选项
@@ -71,6 +73,10 @@ class ToolCallAgentTest {
         return new ChatResponse(List.of(new Generation(message)));
     }
 
+    private void stubStream(ChatResponse... responses) {
+        when(chatModel.stream(any(Prompt.class))).thenReturn(Flux.just(responses));
+    }
+
     private static AssistantMessage.ToolCall toolCall(String name, String arguments) {
         return new AssistantMessage.ToolCall("call-" + name, "function", name, arguments);
     }
@@ -87,10 +93,8 @@ class ToolCallAgentTest {
     @Test
     @DisplayName("模型返回工具调用：think 返回 true 且不重复写入助手消息")
     void thinkWithToolCallsReturnsTrue() {
-        when(chatModel.call(any(Prompt.class))).thenReturn(
-                response("我先检索规则", List.of(toolCall("echo", "{\"text\":\"你好\"}"))));
-        ToolCallback[] tools = ToolCallbacks.from(echoTool);
-        ToolCallAgent agent = newAgent(tools);
+        stubStream(response("我先检索规则", List.of(toolCall("echo", "{\"text\":\"你好\"}"))));
+        ToolCallAgent agent = newAgent(ToolCallbacks.from(echoTool));
 
         boolean shouldAct = agent.think();
 
@@ -102,9 +106,33 @@ class ToolCallAgentTest {
     }
 
     @Test
+    @DisplayName("流式分片聚合：文本与工具调用参数跨分片合并为完整响应")
+    void thinkAggregatesStreamingChunks() {
+        AssistantMessage.ToolCall first = new AssistantMessage.ToolCall(
+                "call-echo", "function", "echo", "{\"text\":");
+        AssistantMessage.ToolCall second = new AssistantMessage.ToolCall(
+                "call-echo", "function", "", "\"你好\"}");
+        stubStream(
+                response("我先", List.of(first)),
+                response("检索规则", List.of(second)));
+
+        ToolCallAgent agent = newAgent(ToolCallbacks.from(echoTool));
+        assertTrue(agent.think());
+
+        ChatResponse aggregated = agent.getToolCallChatResponse();
+        assertEquals("我先检索规则", aggregated.getResult().getOutput().getText(),
+                "分片文本应被拼接为完整文本");
+        assertEquals(1, aggregated.getResult().getOutput().getToolCalls().size(),
+                "同一 id 的工具调用应合并为一条");
+        assertEquals("{\"text\":\"你好\"}",
+                aggregated.getResult().getOutput().getToolCalls().get(0).arguments(),
+                "跨分片参数应被合并为合法 JSON");
+    }
+
+    @Test
     @DisplayName("模型不返回工具调用：think 返回 false 并保存助手消息")
     void thinkWithoutToolCallsReturnsFalse() {
-        when(chatModel.call(any(Prompt.class))).thenReturn(response("直接答复用户", List.of()));
+        stubStream(response("直接答复用户", List.of()));
         ToolCallAgent agent = newAgent(ToolCallbacks.from(echoTool));
 
         boolean shouldAct = agent.think();
@@ -119,7 +147,8 @@ class ToolCallAgentTest {
     @Test
     @DisplayName("模型调用异常：置 ERROR，step 返回错误文案且不继续")
     void thinkFailureMarksError() {
-        when(chatModel.call(any(Prompt.class))).thenThrow(new IllegalStateException("模型不可用"));
+        when(chatModel.stream(any(Prompt.class)))
+                .thenReturn(Flux.error(new IllegalStateException("模型不可用")));
         ToolCallAgent agent = newAgent(ToolCallbacks.from(echoTool));
 
         String stepResult = agent.step();
@@ -132,8 +161,7 @@ class ToolCallAgentTest {
     @Test
     @DisplayName("act 执行普通工具：返回“已调用工具”，并把工具结果写回上下文")
     void actExecutesToolAndRecordsContext() {
-        when(chatModel.call(any(Prompt.class))).thenReturn(
-                response("调用回显工具", List.of(toolCall("echo", "{\"text\":\"你好\"}"))));
+        stubStream(response("调用回显工具", List.of(toolCall("echo", "{\"text\":\"你好\"}"))));
         ToolCallAgent agent = newAgent(ToolCallbacks.from(echoTool));
         assertTrue(agent.think());
 
@@ -152,8 +180,7 @@ class ToolCallAgentTest {
     @Test
     @DisplayName("调用 terminate：状态置 FINISHED 且优先返回本轮助手文本（回归 #3）")
     void actTerminateReturnsAssistantText() {
-        when(chatModel.call(any(Prompt.class))).thenReturn(
-                response("这个问题超出范围，建议转人工", List.of(toolCall("doTerminate", "{}"))));
+        stubStream(response("这个问题超出范围，建议转人工", List.of(toolCall("doTerminate", "{}"))));
         ToolCallAgent agent = newAgent(ToolCallbacks.from(new TerminateTool(), echoTool));
         assertTrue(agent.think());
 
@@ -175,14 +202,13 @@ class ToolCallAgentTest {
     @Test
     @DisplayName("传给模型的 Prompt 应携带工具定义、单一系统消息，并禁用内置工具执行")
     void promptCarriesToolsAndDisablesInternalExecution() {
-        when(chatModel.call(any(Prompt.class))).thenReturn(
-                response("检索", List.of(toolCall("echo", "{\"text\":\"你好\"}"))));
+        stubStream(response("检索", List.of(toolCall("echo", "{\"text\":\"你好\"}"))));
         ToolCallAgent agent = newAgent(ToolCallbacks.from(echoTool));
 
         agent.think();
 
         ArgumentCaptor<Prompt> captor = ArgumentCaptor.forClass(Prompt.class);
-        verify(chatModel).call(captor.capture());
+        verify(chatModel).stream(captor.capture());
         Prompt sentPrompt = captor.getValue();
 
         long systemCount = sentPrompt.getInstructions().stream()

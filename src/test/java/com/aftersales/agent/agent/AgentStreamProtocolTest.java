@@ -189,6 +189,30 @@ class AgentStreamProtocolTest {
         assertEquals(AgentState.IDLE, controller.agent.getState(), "校验失败不应进入 RUNNING");
     }
 
+    @Test
+    @DisplayName("token 流式：增量文本以 token 事件下发，且不再重复整段答复")
+    void tokenStreamingEmitsIncrementalEvents() throws Exception {
+        controller.agent = new BaseAgent() {
+            @Override
+            public String step() {
+                emitToken("你");
+                emitToken("好，已受理");
+                setState(AgentState.FINISHED);
+                return "你好，已受理";
+            }
+        };
+        controller.agent.setName("streamAgent");
+        controller.agent.setMaxSteps(2);
+
+        String body = runAndReadBody();
+
+        assertEquals(2, countOccurrences(body, "event:token"), "应推送 2 个 token 事件，实际：" + body);
+        assertTrue(body.contains("data:你"), "实际：" + body);
+        assertTrue(body.contains("data:好，已受理"), "实际：" + body);
+        assertFalseContains(body, "data:你好，已受理", "已流式推送的文本不应再整段重复下发");
+        assertTrue(body.contains("data:[DONE]"), "实际：" + body);
+    }
+
     private static long countOccurrences(String text, String needle) {
         long count = 0;
         int index = 0;

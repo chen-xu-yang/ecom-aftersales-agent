@@ -49,7 +49,8 @@ public class AiController {
      */
     @GetMapping(value = "/aftersales/chat/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> doChatWithAftersalesAppSSE(String message, String chatId) {
-        return aftersalesApp.doChatByStream(message, chatId);
+        // 与智能体接口统一：流末尾追加 [DONE] 哨兵，前端据此正常关闭而不是按错误重连
+        return aftersalesApp.doChatByStream(message, chatId).concatWith(Flux.just("[DONE]"));
     }
 
     /**
@@ -64,7 +65,8 @@ public class AiController {
         return aftersalesApp.doChatByStream(message, chatId)
                 .map(chunk -> ServerSentEvent.<String>builder()
                         .data(chunk)
-                        .build());
+                        .build())
+                .concatWith(Flux.just(ServerSentEvent.<String>builder().data("[DONE]").build()));
     }
 
     /**
@@ -80,6 +82,7 @@ public class AiController {
         SseEmitter sseEmitter = new SseEmitter(180000L); // 3 分钟超时
         // 获取 Flux 响应式数据流并且直接通过订阅推送给 SseEmitter
         aftersalesApp.doChatByStream(message, chatId)
+                .concatWith(Flux.just("[DONE]"))
                 .subscribe(chunk -> {
                     try {
                         sseEmitter.send(chunk);

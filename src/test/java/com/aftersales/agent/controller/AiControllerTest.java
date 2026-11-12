@@ -87,6 +87,7 @@ class AiControllerTest {
 
         assertTrue(body.contains("第一段"), "实际：" + body);
         assertTrue(body.contains("第二段"), "实际：" + body);
+        assertTrue(body.contains("data:[DONE]"), "客服 SSE 也应以 [DONE] 收尾，实际：" + body);
     }
 
     @Test
@@ -127,8 +128,8 @@ class AiControllerTest {
     @Test
     @DisplayName("GET /ai/agent/chat：模型异常时仍以 [DONE] 收尾，前端不会按错误重连")
     void agentChatSendsDoneEvenWhenModelFails() throws Exception {
-        when(chatModel.call(any(org.springframework.ai.chat.prompt.Prompt.class)))
-                .thenThrow(new RuntimeException("模型不可用"));
+        when(chatModel.stream(any(org.springframework.ai.chat.prompt.Prompt.class)))
+                .thenReturn(Flux.error(new RuntimeException("模型不可用")));
 
         MvcResult initial = mockMvc.perform(get("/ai/agent/chat").param("message", "吊牌剪了还能退吗"))
                 .andExpect(request().asyncStarted())
@@ -143,8 +144,8 @@ class AiControllerTest {
     @Test
     @DisplayName("GET /ai/agent/chat 会为每次请求创建独立的智能体实例")
     void agentChatCreatesFreshAgentPerRequest() throws Exception {
-        when(chatModel.call(any(org.springframework.ai.chat.prompt.Prompt.class)))
-                .thenThrow(new RuntimeException("模型不可用"));
+        when(chatModel.stream(any(org.springframework.ai.chat.prompt.Prompt.class)))
+                .thenReturn(Flux.error(new RuntimeException("模型不可用")));
 
         for (int i = 0; i < 2; i++) {
             MvcResult initial = mockMvc.perform(get("/ai/agent/chat").param("message", "第 " + i + " 次"))
